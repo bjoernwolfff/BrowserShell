@@ -1,30 +1,94 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mini DuckDuckGo Browser</title>
 
-  <!-- PWA / iOS -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="DuckMini">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DuckMini" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 
   <style>
-    :root{--bg:#f7f7f8; --accent:#1a73e8}
-    html,body{height:100%;margin:0;font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;}
-    header{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);box-shadow:0 1px 0 rgba(0,0,0,.06)}
-    button{border:0;background:transparent;padding:6px;border-radius:6px}
-    .btn{cursor:pointer}
-    input[type="search"]{flex:1;padding:8px 10px;border-radius:10px;border:1px solid #ddd;font-size:16px}
-    .controls{display:flex;gap:6px;width:100%;align-items:center}
-    #frameWrap{position:fixed;left:0;right:0;bottom:0;top:56px;background:white}
-    iframe{width:100%;height:100%;border:0;background:white}
-    .settings{padding:10px;background:#fff;border-top:1px solid #eee;display:flex;gap:8px;align-items:center;}
-    label{font-size:13px}
-    small.gray{color:#666;font-size:12px}
+    :root {
+      --bg: #f7f7f8;
+      --accent: #1a73e8;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: calc(var(--vh, 1vh) * 100);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: var(--bg);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+      height: 56px;
+      box-sizing: border-box;
+    }
+    button {
+      border: 0;
+      background: transparent;
+      padding: 6px;
+      border-radius: 6px;
+    }
+    .btn {
+      cursor: pointer;
+    }
+    input[type="search"] {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+    }
+    .controls {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      align-items: center;
+    }
+    #frameWrap {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: 56px;
+      background: white;
+      height: calc(var(--vh, 1vh) * 100 - 56px);
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: white;
+    }
+    .settings {
+      padding: 10px;
+      background: #fff;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    label {
+      font-size: 13px;
+    }
+    small.gray {
+      color: #666;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -102,21 +166,33 @@
       prefs.startDelay = Math.max(0, Number(startDelayEl.value)||0);
       prefs.minInterval = Math.max(1, Number(minIntervalEl.value)||5);
       prefs.maxInterval = Math.max(1, Number(maxIntervalEl.value)||1000);
-      if (prefs.minInterval>prefs.maxInterval) { prefs.minInterval = prefs.maxInterval; minIntervalEl.value = prefs.minInterval; }
+      if (prefs.minInterval > prefs.maxInterval) {
+        prefs.minInterval = prefs.maxInterval;
+        minIntervalEl.value = prefs.minInterval;
+      }
       localStorage.setItem('duckmini_prefs', JSON.stringify(prefs));
     });
   });
 
   // toggle settings panel
-  settingsBtn.addEventListener('click', ()=> settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none');
+  settingsBtn.addEventListener('click', () => {
+    settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none';
+  });
 
   // Navigation controls (basic: communicate with iframe via history limited handling)
-  back.addEventListener('click', ()=> {
-    // try to go back in iframe; if not possible, do top history
-    try { pane.contentWindow.history.back(); } catch(e){ history.back(); }
+  back.addEventListener('click', () => {
+    try {
+      pane.contentWindow.history.back();
+    } catch (e) {
+      history.back();
+    }
   });
-  forward.addEventListener('click', ()=> {
-    try { pane.contentWindow.history.forward(); } catch(e){ history.forward(); }
+  forward.addEventListener('click', () => {
+    try {
+      pane.contentWindow.history.forward();
+    } catch (e) {
+      history.forward();
+    }
   });
 
   // Build DuckDuckGo search URL
@@ -129,12 +205,11 @@
   function loadInPane(url) {
     let loaded = false;
     pane.src = url;
-    const to = setTimeout(()=> {
+    const to = setTimeout(() => {
       if (!loaded) {
-        // fallback: open in same tab (replace) for better experience on mobile
         window.location.href = url;
       }
-    }, 1800); // if no load event in 1.8s assume blocked -> fallback
+    }, 1800);
 
     pane.onload = () => {
       loaded = true;
@@ -143,74 +218,62 @@
   }
 
   // Search action
-  function doSearch(query){
+  function doSearch(query) {
     if (!query) return;
     const url = ddgUrl(query);
     loadInPane(url);
   }
 
-  searchBtn.addEventListener('click', ()=> doSearch(q.value));
-  q.addEventListener('keydown', (e)=>{
+  searchBtn.addEventListener('click', () => doSearch(q.value));
+  q.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       doSearch(q.value);
     }
   });
 
-  // --- Typing simulation logic for the search input field ---
-  (function typingSim(){
-    let timers = {};
+  // --- Tipp-Simulation nur beim Verlassen des Feldes ---
+  (function typingSim() {
+    let typingTimer;
 
-    function dispatchInputEvent(el){
+    function dispatchInputEvent(el) {
       const ev = new Event('input', { bubbles: true, cancelable: true });
       el.dispatchEvent(ev);
     }
 
-    async function simulateTyping(target, finalText){
+    async function simulateTyping(target, finalText) {
       if (!prefs.enabled) return;
       target.focus();
-      // save selection
-      let selStart = target.selectionStart, selEnd = target.selectionEnd;
       target.value = '';
       dispatchInputEvent(target);
 
-      for (let i=0; i<finalText.length; i++){
-        const ch = finalText[i];
-        const prev = target.value || '';
-        target.value = prev + ch;
-        try { target.selectionStart = target.selectionEnd = target.value.length; } catch(e){}
+      for (let i = 0; i < finalText.length; i++) {
+        const delay = prefs.minInterval + Math.random() * (prefs.maxInterval - prefs.minInterval);
+        await new Promise(r => setTimeout(r, delay));
+        target.value += finalText[i];
         dispatchInputEvent(target);
-
-        const delay = prefs.minInterval + Math.random()*(prefs.maxInterval - prefs.minInterval || 0);
-        await new Promise(r => setTimeout(r, Math.max(1, delay|0)));
       }
-
-      try { target.selectionStart = selStart; target.selectionEnd = selEnd; } catch(e){}
-      dispatchInputEvent(target);
     }
 
-    function scheduleSim(el, text){
-      if (!prefs.enabled) return;
-      if (timers[el]) clearTimeout(timers[el]);
-      timers[el] = setTimeout(()=>{
-        simulateTyping(el, text).catch(console.error);
-        delete timers[el];
-      }, prefs.startDelay);
-    }
-
-    // Nur beim Verlassen des Feldes simulieren
-    q.addEventListener('blur', () => {
-      scheduleSim(q, q.value);
+    q.addEventListener('focus', () => {
+      clearTimeout(typingTimer);
     });
 
+    q.addEventListener('blur', () => {
+      if (!prefs.enabled) return;
+      const val = q.value.trim();
+      if (!val) return;
+      typingTimer = setTimeout(() => simulateTyping(q, val), prefs.startDelay);
+    });
   })();
 
-  // Register service worker for caching (optional)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(()=>{/*sw optional*/});
+  // Dynamische Höhe (vh) fix für iOS Safari Leiste
+  function setVh() {
+    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
   }
-
+  window.addEventListener('resize', setVh);
+  window.addEventListener('orientationchange', setVh);
+  setVh();
   </script>
 </body>
 </html>
-
