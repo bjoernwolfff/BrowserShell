@@ -140,7 +140,6 @@
       loaded = true;
       clearTimeout(to);
     };
-    // also catch explicit error by listening to message? limited for cross-origin
   }
 
   // Search action
@@ -160,9 +159,7 @@
 
   // --- Typing simulation logic for the search input field ---
   (function typingSim(){
-    let timer = null;
-    let lastText = '';
-    const timers = { };
+    let timers = {};
 
     function dispatchInputEvent(el){
       const ev = new Event('input', { bubbles: true, cancelable: true });
@@ -171,34 +168,29 @@
 
     async function simulateTyping(target, finalText){
       if (!prefs.enabled) return;
-      // simple visual: clear and retype
       target.focus();
       // save selection
       let selStart = target.selectionStart, selEnd = target.selectionEnd;
       target.value = '';
       dispatchInputEvent(target);
 
-      for (let i=0;i<finalText.length;i++){
+      for (let i=0; i<finalText.length; i++){
         const ch = finalText[i];
-        // append char
         const prev = target.value || '';
         target.value = prev + ch;
         try { target.selectionStart = target.selectionEnd = target.value.length; } catch(e){}
         dispatchInputEvent(target);
 
-        // random delay
         const delay = prefs.minInterval + Math.random()*(prefs.maxInterval - prefs.minInterval || 0);
-        await new Promise(r=>setTimeout(r, Math.max(1, delay|0)));
+        await new Promise(r => setTimeout(r, Math.max(1, delay|0)));
       }
 
-      // restore caret roughly at end
       try { target.selectionStart = selStart; target.selectionEnd = selEnd; } catch(e){}
       dispatchInputEvent(target);
     }
 
     function scheduleSim(el, text){
       if (!prefs.enabled) return;
-      // clear any running timer
       if (timers[el]) clearTimeout(timers[el]);
       timers[el] = setTimeout(()=>{
         simulateTyping(el, text).catch(console.error);
@@ -206,18 +198,9 @@
       }, prefs.startDelay);
     }
 
-    // input listener on our own search input
-    q.addEventListener('input', (e)=>{
-      if (!prefs.enabled) return;
-      const text = q.value;
-      // if user is actively typing, wait for pause
-      scheduleSim(q, text);
-    });
-
-    // handle paste
-    q.addEventListener('paste', (e)=>{
-      // after paste, schedule simulation
-      setTimeout(()=> scheduleSim(q, q.value), 50);
+    // Nur beim Verlassen des Feldes simulieren
+    q.addEventListener('blur', () => {
+      scheduleSim(q, q.value);
     });
 
   })();
@@ -230,3 +213,4 @@
   </script>
 </body>
 </html>
+
