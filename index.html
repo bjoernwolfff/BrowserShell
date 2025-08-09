@@ -3,172 +3,91 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Mini Qwant Browser</title>
-
-  <!-- PWA / iOS -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="QwantMini">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <title>Mini Ecosia Browser</title>
 
   <style>
-    :root{--bg:#f7f7f8; --accent:#1a73e8; --vh:100%;}
-    html,body{height:100%;margin:0;font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;}
-    header{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);box-shadow:0 1px 0 rgba(0,0,0,.06)}
-    button{border:0;background:transparent;padding:6px;border-radius:6px}
-    .btn{cursor:pointer}
-    input[type="search"]{flex:1;padding:8px 10px;border-radius:10px;border:1px solid #ddd;font-size:16px}
-    .controls{display:flex;gap:6px;width:100%;align-items:center}
-    #frameWrap{position:fixed;left:0;right:0;bottom:0;top:56px;background:white;height:calc(var(--vh) * 100 - 56px);}
-    iframe{width:100%;height:100%;border:0;background:white}
-    .settings{padding:10px;background:#fff;border-top:1px solid #eee;display:flex;gap:8px;align-items:center;}
-    label{font-size:13px}
-    small.gray{color:#666;font-size:12px}
+    :root { --bg:#f7f7f8; --accent:#1a73e8; }
+    html,body { height:100%; margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial; }
+    header {
+      display:flex; align-items:center; gap:8px; padding:8px;
+      background:var(--bg); box-shadow:0 1px 0 rgba(0,0,0,.06);
+    }
+    button { border:0; background:transparent; padding:6px; border-radius:6px; cursor:pointer; }
+    input[type="search"], input[type="text"] {
+      flex:1; padding:8px 10px; border-radius:10px;
+      border:1px solid #ddd; font-size:16px;
+    }
+    #frameWrap { position:fixed; left:0; right:0; bottom:0; top:56px; background:white; }
+    iframe { width:100%; height:100%; border:0; background:white; }
   </style>
 </head>
 <body>
   <header>
-    <button id="back" title="Zurück" class="btn">◀</button>
-    <button id="forward" title="Vor" class="btn">▶</button>
-
-    <div class="controls" style="flex:1">
-      <input id="q" type="search" placeholder="Qwant durchsuchen…" autocomplete="off" autocapitalize="off" autocorrect="off" />
-      <button id="searchBtn" class="btn" title="Suchen">🔍</button>
-    </div>
-
-    <button id="settingsBtn" class="btn" title="Einstellungen">⚙️</button>
+    <input id="q" type="search" placeholder="Ecosia durchsuchen…" autocomplete="off">
+    <button id="searchBtn" title="Suchen">🔍</button>
   </header>
 
   <div id="frameWrap">
     <iframe id="pane" srcdoc="<p style='font-family:system-ui;padding:20px'>Starte eine Suche oben…</p>"></iframe>
   </div>
 
-  <div id="settingsPanel" class="settings" style="display:none">
-    <label><input id="enabled" type="checkbox" checked> Tipp-Simulation</label>
-    <label style="display:flex;gap:6px;align-items:center">
-      <span class="gray">Pause (ms)</span>
-      <input id="startDelay" type="number" min="0" value="450" style="width:80px">
-    </label>
-    <label style="display:flex;gap:6px;align-items:center">
-      <span class="gray">Min (ms)</span>
-      <input id="minInterval" type="number" min="5" value="25" style="width:70px">
-    </label>
-    <label style="display:flex;gap:6px;align-items:center">
-      <span class="gray">Max (ms)</span>
-      <input id="maxInterval" type="number" min="5" value="160" style="width:70px">
-    </label>
-    <small class="gray" style="margin-left:auto">Qwant wird im Frame geladen.</small>
-  </div>
-
   <script>
-  const prefs = {
-    enabled: true,
-    startDelay: 450,
-    minInterval: 25,
-    maxInterval: 160
-  };
+    const prefs = {
+      enabled: true,
+      minInterval: 25,
+      maxInterval: 160
+    };
 
-  const q = document.getElementById('q');
-  const searchBtn = document.getElementById('searchBtn');
-  const pane = document.getElementById('pane');
-  const back = document.getElementById('back');
-  const forward = document.getElementById('forward');
-  const settingsBtn = document.getElementById('settingsBtn');
-  const settingsPanel = document.getElementById('settingsPanel');
-  const enabledEl = document.getElementById('enabled');
-  const startDelayEl = document.getElementById('startDelay');
-  const minIntervalEl = document.getElementById('minInterval');
-  const maxIntervalEl = document.getElementById('maxInterval');
+    const q = document.getElementById('q');
+    const searchBtn = document.getElementById('searchBtn');
+    const pane = document.getElementById('pane');
 
-  try {
-    const saved = JSON.parse(localStorage.getItem('qwantmini_prefs')||'{}');
-    Object.assign(prefs, saved);
-  } catch(e){}
-
-  enabledEl.checked = prefs.enabled;
-  startDelayEl.value = prefs.startDelay;
-  minIntervalEl.value = prefs.minInterval;
-  maxIntervalEl.value = prefs.maxInterval;
-
-  [enabledEl,startDelayEl,minIntervalEl,maxIntervalEl].forEach(el=>{
-    el.addEventListener('change',()=>{
-      prefs.enabled = !!enabledEl.checked;
-      prefs.startDelay = Math.max(0, Number(startDelayEl.value)||0);
-      prefs.minInterval = Math.max(1, Number(minIntervalEl.value)||5);
-      prefs.maxInterval = Math.max(1, Number(maxIntervalEl.value)||1000);
-      if (prefs.minInterval>prefs.maxInterval) { prefs.minInterval = prefs.maxInterval; minIntervalEl.value = prefs.minInterval; }
-      localStorage.setItem('qwantmini_prefs', JSON.stringify(prefs));
-    });
-  });
-
-  settingsBtn.addEventListener('click', ()=> settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none');
-
-  back.addEventListener('click', ()=> {
-    try { pane.contentWindow.history.back(); } catch(e){ history.back(); }
-  });
-  forward.addEventListener('click', ()=> {
-    try { pane.contentWindow.history.forward(); } catch(e){ history.forward(); }
-  });
-
-  function qwantUrl(query) {
-    const qenc = encodeURIComponent(query || '');
-    return 'https://www.qwant.com/?q=' + qenc + '&t=web';
-  }
-
-  function doSearch(query){
-    if (!query) return;
-    const url = qwantUrl(query);
-    pane.src = url;
-  }
-
-  searchBtn.addEventListener('click', ()=> doSearch(q.value));
-  q.addEventListener('keydown', (e)=>{
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      doSearch(q.value);
+    function ecosiaUrl(query) {
+      return 'https://www.ecosia.org/search?q=' + encodeURIComponent(query || '');
     }
-  });
 
-  // Tipp-Simulation beim Blur
-  (function typingSim(){
-    let typingTimer;
-    function dispatchInputEvent(el){
+    function doSearch(query) {
+      if (!query) return;
+      pane.src = ecosiaUrl(query);
+    }
+
+    searchBtn.addEventListener('click', () => doSearch(q.value));
+    q.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        doSearch(q.value);
+      }
+    });
+
+    // --- Tipp-Simulation für alle Felder ---
+    function dispatchInputEvent(el) {
       const ev = new Event('input', { bubbles: true, cancelable: true });
       el.dispatchEvent(ev);
     }
-    async function simulateTyping(target, finalText){
+
+    async function simulateTyping(target, finalText) {
       if (!prefs.enabled) return;
       target.value = '';
       dispatchInputEvent(target);
-      for (let i=0;i<finalText.length;i++){
-        const delay = prefs.minInterval + Math.random() * (prefs.maxInterval - prefs.minInterval);
-        await new Promise(r => setTimeout(r, delay));
+
+      for (let i = 0; i < finalText.length; i++) {
         target.value += finalText[i];
         dispatchInputEvent(target);
+        const delay = prefs.minInterval + Math.random() * (prefs.maxInterval - prefs.minInterval);
+        await new Promise(r => setTimeout(r, delay));
       }
     }
-    q.addEventListener('focus', () => {
-      clearTimeout(typingTimer);
-    });
-    q.addEventListener('blur', () => {
-      if (!prefs.enabled) return;
-      const val = q.value.trim();
-      if (!val) return;
-      typingTimer = setTimeout(() => simulateTyping(q, val), prefs.startDelay);
-    });
-  })();
 
-  function setVh() {
-    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
-  }
-  window.addEventListener('resize', setVh);
-  window.addEventListener('orientationchange', setVh);
-  setVh();
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  }
+    document.addEventListener('blur', (e) => {
+      const el = e.target;
+      if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) {
+        const text = el.value;
+        if (text && prefs.enabled) {
+          simulateTyping(el, text);
+        }
+      }
+    }, true);
   </script>
 </body>
 </html>
+
