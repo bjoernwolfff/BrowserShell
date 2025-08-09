@@ -1,5 +1,5 @@
 const CACHE_NAME = 'duckmini-v1';
-const FILES = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];
+const FILES = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', evt => {
   evt.waitUntil(
@@ -10,7 +10,7 @@ self.addEventListener('install', evt => {
 
 self.addEventListener('activate', evt => {
   evt.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))))
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
   );
   self.clients.claim();
 });
@@ -18,6 +18,6 @@ self.addEventListener('activate', evt => {
 self.addEventListener('fetch', evt => {
   if (evt.request.method !== 'GET') return;
   evt.respondWith(
-    caches.match(evt.request).then(cached => cached || fetch(evt.request).catch(()=> caches.match('/')))
+    caches.match(evt.request).then(cached => cached || fetch(evt.request).catch(() => caches.match('/')))
   );
 });
