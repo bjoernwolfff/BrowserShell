@@ -2,16 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Mini DuckDuckGo Browser</title>
 
-  <!-- PWA Manifest -->
+  <!-- PWA / iOS -->
   <link rel="manifest" href="manifest.json" />
-
-  <!-- iOS PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="DuckMini" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 
   <style>
@@ -19,32 +17,20 @@
       --bg: #f7f7f8;
       --accent: #1a73e8;
     }
-    html, body {
+    html,
+    body {
+      height: 100%;
       margin: 0;
-      padding: 0;
-      height: calc(var(--vh, 1vh) * 100);
-      background: var(--bg);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      overflow: hidden;
+      background: var(--bg);
     }
     header {
       display: flex;
       align-items: center;
-      gap: 8px;
       padding: 8px;
       background: var(--bg);
-      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-      height: 56px;
-      box-sizing: border-box;
-    }
-    button {
-      border: 0;
-      background: transparent;
-      padding: 6px;
-      border-radius: 6px;
-    }
-    .btn {
-      cursor: pointer;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+      gap: 8px;
     }
     input[type="search"] {
       flex: 1;
@@ -52,21 +38,30 @@
       border-radius: 10px;
       border: 1px solid #ddd;
       font-size: 16px;
+      outline-offset: 2px;
     }
-    .controls {
-      display: flex;
-      gap: 6px;
-      width: 100%;
-      align-items: center;
+    button {
+      border: 0;
+      background: var(--accent);
+      color: white;
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 16px;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background: #155ab6;
     }
     #frameWrap {
       position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
-      top: 56px;
+      top: 56px; /* Höhe vom header */
       background: white;
-      height: calc(var(--vh, 1vh) * 100 - 56px);
     }
     iframe {
       width: 100%;
@@ -74,206 +69,59 @@
       border: 0;
       background: white;
     }
-    .settings {
-      padding: 10px;
-      background: #fff;
-      border-top: 1px solid #eee;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    label {
-      font-size: 13px;
-    }
-    small.gray {
-      color: #666;
-      font-size: 12px;
-    }
   </style>
 </head>
 <body>
   <header>
-    <button id="back" title="Zurück" class="btn">◀</button>
-    <button id="forward" title="Vor" class="btn">▶</button>
-
-    <div class="controls" style="flex:1">
-      <input id="q" type="search" placeholder="DuckDuckGo durchsuchen…" autocomplete="off" autocapitalize="off" autocorrect="off" />
-      <button id="searchBtn" class="btn" title="Suchen">🔍</button>
-    </div>
-
-    <button id="settingsBtn" class="btn" title="Einstellungen">⚙️</button>
+    <input
+      id="q"
+      type="search"
+      placeholder="DuckDuckGo durchsuchen…"
+      autocomplete="off"
+      autocapitalize="off"
+      autocorrect="off"
+      aria-label="Suchfeld"
+    />
+    <button id="searchBtn" title="Suchen">🔍 Suchen</button>
   </header>
 
   <div id="frameWrap">
-    <iframe id="pane" srcdoc="<p style='font-family:system-ui;padding:20px'>Starte eine Suche oben…</p>"></iframe>
-  </div>
-
-  <div id="settingsPanel" class="settings" style="display:none">
-    <label><input id="enabled" type="checkbox" checked> Tipp-Simulation</label>
-    <label style="display:flex;gap:6px;align-items:center">
-      <span class="gray">Pause (ms)</span>
-      <input id="startDelay" type="number" min="0" value="450" style="width:80px">
-    </label>
-    <label style="display:flex;gap:6px;align-items:center">
-      <span class="gray">Min (ms)</span>
-      <input id="minInterval" type="number" min="5" value="25" style="width:70px">
-    </label>
-    <label style="display:flex;gap:6px;align-items:center">
-      <span class="gray">Max (ms)</span>
-      <input id="maxInterval" type="number" min="5" value="160" style="width:70px">
-    </label>
-    <small class="gray" style="margin-left:auto">DuckDuckGo wird im Frame geladen, falls erlaubt.</small>
+    <iframe
+      id="pane"
+      srcdoc="<p style='font-family: system-ui; padding: 20px;'>Starte eine Suche oben…</p>"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+    ></iframe>
   </div>
 
   <script>
-  // --- Einstellungen / Defaults ---
-  const prefs = {
-    enabled: true,
-    startDelay: 450,
-    minInterval: 25,
-    maxInterval: 160
-  };
+    const q = document.getElementById("q");
+    const searchBtn = document.getElementById("searchBtn");
+    const pane = document.getElementById("pane");
 
-  // --- DOM ---
-  const q = document.getElementById('q');
-  const searchBtn = document.getElementById('searchBtn');
-  const pane = document.getElementById('pane');
-  const back = document.getElementById('back');
-  const forward = document.getElementById('forward');
-  const settingsBtn = document.getElementById('settingsBtn');
-  const settingsPanel = document.getElementById('settingsPanel');
-  const enabledEl = document.getElementById('enabled');
-  const startDelayEl = document.getElementById('startDelay');
-  const minIntervalEl = document.getElementById('minInterval');
-  const maxIntervalEl = document.getElementById('maxInterval');
-
-  // load saved prefs from localStorage if any
-  try {
-    const saved = JSON.parse(localStorage.getItem('duckmini_prefs')||'{}');
-    Object.assign(prefs, saved);
-  } catch(e){}
-
-  // apply prefs to controls
-  enabledEl.checked = prefs.enabled;
-  startDelayEl.value = prefs.startDelay;
-  minIntervalEl.value = prefs.minInterval;
-  maxIntervalEl.value = prefs.maxInterval;
-
-  // save when changed
-  [enabledEl,startDelayEl,minIntervalEl,maxIntervalEl].forEach(el=>{
-    el.addEventListener('change',()=>{
-      prefs.enabled = !!enabledEl.checked;
-      prefs.startDelay = Math.max(0, Number(startDelayEl.value)||0);
-      prefs.minInterval = Math.max(1, Number(minIntervalEl.value)||5);
-      prefs.maxInterval = Math.max(1, Number(maxIntervalEl.value)||1000);
-      if (prefs.minInterval > prefs.maxInterval) {
-        prefs.minInterval = prefs.maxInterval;
-        minIntervalEl.value = prefs.minInterval;
-      }
-      localStorage.setItem('duckmini_prefs', JSON.stringify(prefs));
-    });
-  });
-
-  // toggle settings panel
-  settingsBtn.addEventListener('click', () => {
-    settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none';
-  });
-
-  // Navigation controls (basic: communicate with iframe via history limited handling)
-  back.addEventListener('click', () => {
-    try {
-      pane.contentWindow.history.back();
-    } catch (e) {
-      history.back();
-    }
-  });
-  forward.addEventListener('click', () => {
-    try {
-      pane.contentWindow.history.forward();
-    } catch (e) {
-      history.forward();
-    }
-  });
-
-  // Build DuckDuckGo search URL
-  function ddgUrl(query) {
-    const qenc = encodeURIComponent(query || '');
-    return 'https://duckduckgo.com/?q=' + qenc + '&t=hm'; // t param optional
-  }
-
-  // Try to load URL in iframe, fallback to top.open if embed blocked (timeout)
-  function loadInPane(url) {
-    let loaded = false;
-    pane.src = url;
-    const to = setTimeout(() => {
-      if (!loaded) {
-        window.location.href = url;
-      }
-    }, 1800);
-
-    pane.onload = () => {
-      loaded = true;
-      clearTimeout(to);
-    };
-  }
-
-  // Search action
-  function doSearch(query) {
-    if (!query) return;
-    const url = ddgUrl(query);
-    loadInPane(url);
-  }
-
-  searchBtn.addEventListener('click', () => doSearch(q.value));
-  q.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      doSearch(q.value);
-    }
-  });
-
-  // --- Tipp-Simulation nur beim Verlassen des Feldes ---
-  (function typingSim() {
-    let typingTimer;
-
-    function dispatchInputEvent(el) {
-      const ev = new Event('input', { bubbles: true, cancelable: true });
-      el.dispatchEvent(ev);
+    // DuckDuckGo Such-URL mit Parametern
+    function ddgUrl(query) {
+      const qenc = encodeURIComponent(query || "");
+      // kp=-2 = kein Autovervollständigen & reduziertes UI (Suchleiste bleibt)
+      return `https://duckduckgo.com/?q=${qenc}&kp=-2&ia=web`;
     }
 
-    async function simulateTyping(target, finalText) {
-      if (!prefs.enabled) return;
-      target.focus();
-      target.value = '';
-      dispatchInputEvent(target);
-
-      for (let i = 0; i < finalText.length; i++) {
-        const delay = prefs.minInterval + Math.random() * (prefs.maxInterval - prefs.minInterval);
-        await new Promise(r => setTimeout(r, delay));
-        target.value += finalText[i];
-        dispatchInputEvent(target);
-      }
+    // Lade DuckDuckGo-Ergebnisse im iframe
+    function doSearch(query) {
+      if (!query) return;
+      const url = ddgUrl(query);
+      pane.src = url;
     }
 
-    q.addEventListener('focus', () => {
-      clearTimeout(typingTimer);
+    searchBtn.addEventListener("click", () => {
+      doSearch(q.value.trim());
     });
 
-    q.addEventListener('blur', () => {
-      if (!prefs.enabled) return;
-      const val = q.value.trim();
-      if (!val) return;
-      typingTimer = setTimeout(() => simulateTyping(q, val), prefs.startDelay);
+    q.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        doSearch(q.value.trim());
+      }
     });
-  })();
-
-  // Dynamische Höhe (vh) fix für iOS Safari Leiste
-  function setVh() {
-    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
-  }
-  window.addEventListener('resize', setVh);
-  window.addEventListener('orientationchange', setVh);
-  setVh();
   </script>
 </body>
 </html>
