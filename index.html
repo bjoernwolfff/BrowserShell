@@ -46,12 +46,11 @@
     .btn {
       cursor: pointer;
     }
-    input[type="search"] {
-      flex: 1;
-      padding: 8px 10px;
-      border-radius: 10px;
+    input[type="search"], select, input[type="number"] {
+      padding: 6px 8px;
+      border-radius: 8px;
       border: 1px solid #ddd;
-      font-size: 16px;
+      font-size: 14px;
     }
     .controls {
       display: flex;
@@ -79,13 +78,16 @@
       background: #fff;
       border-top: 1px solid #eee;
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       align-items: center;
     }
     label {
       font-size: 13px;
+      display: flex;
+      flex-direction: column;
     }
-    small.gray {
+    small.gray, span.gray {
       color: #666;
       font-size: 12px;
     }
@@ -110,31 +112,61 @@
 
   <div id="settingsPanel" class="settings" style="display:none">
     <label><input id="enabled" type="checkbox" checked> Tipp-Simulation</label>
-    <label style="display:flex;gap:6px;align-items:center">
+    <label>
       <span class="gray">Pause (ms)</span>
       <input id="startDelay" type="number" min="0" value="450" style="width:80px">
     </label>
-    <label style="display:flex;gap:6px;align-items:center">
+    <label>
       <span class="gray">Min (ms)</span>
       <input id="minInterval" type="number" min="5" value="25" style="width:70px">
     </label>
-    <label style="display:flex;gap:6px;align-items:center">
+    <label>
       <span class="gray">Max (ms)</span>
       <input id="maxInterval" type="number" min="5" value="160" style="width:70px">
     </label>
+
+    <!-- DuckDuckGo-Einstellungen -->
+    <label>
+      <span class="gray">Sprache</span>
+      <select id="lang">
+        <option value="">Standard</option>
+        <option value="de-de">Deutsch</option>
+        <option value="en-us">Englisch (US)</option>
+        <option value="fr-fr">Französisch</option>
+        <option value="es-es">Spanisch</option>
+      </select>
+    </label>
+    <label>
+      <span class="gray">Dark Mode</span>
+      <select id="darkMode">
+        <option value="">Standard</option>
+        <option value="1">An</option>
+        <option value="-1">Aus</option>
+      </select>
+    </label>
+    <label>
+      <span class="gray">SafeSearch</span>
+      <select id="safeSearch">
+        <option value="">Standard</option>
+        <option value="1">Moderat</option>
+        <option value="-1">Aus</option>
+      </select>
+    </label>
+
     <small class="gray" style="margin-left:auto">DuckDuckGo wird im Frame geladen, falls erlaubt.</small>
   </div>
 
   <script>
-  // --- Einstellungen / Defaults ---
   const prefs = {
     enabled: true,
     startDelay: 450,
     minInterval: 25,
-    maxInterval: 160
+    maxInterval: 160,
+    lang: '',
+    darkMode: '',
+    safeSearch: ''
   };
 
-  // --- DOM ---
   const q = document.getElementById('q');
   const searchBtn = document.getElementById('searchBtn');
   const pane = document.getElementById('pane');
@@ -146,26 +178,33 @@
   const startDelayEl = document.getElementById('startDelay');
   const minIntervalEl = document.getElementById('minInterval');
   const maxIntervalEl = document.getElementById('maxInterval');
+  const langEl = document.getElementById('lang');
+  const darkModeEl = document.getElementById('darkMode');
+  const safeSearchEl = document.getElementById('safeSearch');
 
-  // load saved prefs from localStorage if any
   try {
     const saved = JSON.parse(localStorage.getItem('duckmini_prefs')||'{}');
     Object.assign(prefs, saved);
   } catch(e){}
 
-  // apply prefs to controls
   enabledEl.checked = prefs.enabled;
   startDelayEl.value = prefs.startDelay;
   minIntervalEl.value = prefs.minInterval;
   maxIntervalEl.value = prefs.maxInterval;
+  langEl.value = prefs.lang;
+  darkModeEl.value = prefs.darkMode;
+  safeSearchEl.value = prefs.safeSearch;
 
-  // save when changed
-  [enabledEl,startDelayEl,minIntervalEl,maxIntervalEl].forEach(el=>{
+  [enabledEl,startDelayEl,minIntervalEl,maxIntervalEl,
+   langEl,darkModeEl,safeSearchEl].forEach(el=>{
     el.addEventListener('change',()=>{
       prefs.enabled = !!enabledEl.checked;
       prefs.startDelay = Math.max(0, Number(startDelayEl.value)||0);
       prefs.minInterval = Math.max(1, Number(minIntervalEl.value)||5);
       prefs.maxInterval = Math.max(1, Number(maxIntervalEl.value)||1000);
+      prefs.lang = langEl.value;
+      prefs.darkMode = darkModeEl.value;
+      prefs.safeSearch = safeSearchEl.value;
       if (prefs.minInterval > prefs.maxInterval) {
         prefs.minInterval = prefs.maxInterval;
         minIntervalEl.value = prefs.minInterval;
@@ -174,12 +213,10 @@
     });
   });
 
-  // toggle settings panel
   settingsBtn.addEventListener('click', () => {
     settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none';
   });
 
-  // Navigation controls (basic: communicate with iframe via history limited handling)
   back.addEventListener('click', () => {
     try {
       pane.contentWindow.history.back();
@@ -195,13 +232,15 @@
     }
   });
 
-  // Build DuckDuckGo search URL
   function ddgUrl(query) {
     const qenc = encodeURIComponent(query || '');
-    return 'https://duckduckgo.com/?q=' + qenc + '&t=hm'; // t param optional
+    let url = `https://duckduckgo.com/?q=${qenc}&t=hm`;
+    if (prefs.lang) url += `&kl=${encodeURIComponent(prefs.lang)}`;
+    if (prefs.darkMode) url += `&k1=${encodeURIComponent(prefs.darkMode)}`;
+    if (prefs.safeSearch) url += `&kp=${encodeURIComponent(prefs.safeSearch)}`;
+    return url;
   }
 
-  // Try to load URL in iframe, fallback to top.open if embed blocked (timeout)
   function loadInPane(url) {
     let loaded = false;
     pane.src = url;
@@ -217,7 +256,6 @@
     };
   }
 
-  // Search action
   function doSearch(query) {
     if (!query) return;
     const url = ddgUrl(query);
@@ -232,7 +270,6 @@
     }
   });
 
-  // --- Tipp-Simulation nur beim Verlassen des Feldes ---
   (function typingSim() {
     let typingTimer;
 
@@ -267,7 +304,6 @@
     });
   })();
 
-  // Dynamische Höhe (vh) fix für iOS Safari Leiste
   function setVh() {
     document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
   }
