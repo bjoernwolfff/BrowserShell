@@ -16,7 +16,6 @@
     background: var(--bg);
     color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    overflow: hidden;
   }
   header {
     display: flex; align-items: center; gap: 8px;
@@ -36,14 +35,6 @@
     background: #1e1e1e;
     color: var(--fg);
   }
-  #frameWrap {
-    position: fixed; top: 56px; bottom: 0; left: 0; right: 0;
-    background: black;
-  }
-  iframe {
-    width: 100%; height: 100%; border: 0;
-    background: black;
-  }
   .settings {
     position: absolute; top: 56px; left: 0; right: 0;
     background: #1e1e1e; border-bottom: 1px solid var(--border);
@@ -58,8 +49,8 @@
 </head>
 <body>
 <header>
-  <button id="back">◀</button>
-  <button id="forward">▶</button>
+  <button id="back" disabled>◀</button>
+  <button id="forward" disabled>▶</button>
   <input id="q" type="search" placeholder="DuckDuckGo durchsuchen…" />
   <button id="searchBtn">🔍</button>
   <button id="settingsBtn">⚙️</button>
@@ -123,9 +114,9 @@
   </label>
   <label>Neuer Tab
     <select id="newTab">
-      <option value="">Standard (iframe)</option>
-      <option value="1">Ja</option>
-      <option value="-1">Nein (iframe)</option>
+      <option value="">Standard (Neues Fenster)</option>
+      <option value="1">Ja (Neuer Tab)</option>
+      <option value="-1">Nein (Neues Fenster)</option>
     </select>
   </label>
   <label>HTTPS only
@@ -137,10 +128,6 @@
   </label>
 </div>
 
-<div id="frameWrap">
-  <iframe id="pane" srcdoc="<p style='padding:20px;color:white;font-family:sans-serif'>Starte eine Suche…</p>"></iframe>
-</div>
-
 <script>
 const prefs = {
   lang: '', darkMode: '1', safeSearch: '',
@@ -149,7 +136,6 @@ const prefs = {
   httpsOnly: ''
 };
 const q = document.getElementById('q');
-const pane = document.getElementById('pane');
 const settingsPanel = document.getElementById('settingsPanel');
 
 // Felder referenzieren
@@ -198,24 +184,11 @@ function ddgUrl(query) {
 function doSearch(query) {
   if (!query) return;
   const url = ddgUrl(query);
-
+  // Immer im neuen Tab oder Fenster öffnen (kein iframe wegen Blockierung)
   if (prefs.newTab === '1') {
-    // Neuer Tab offen
     window.open(url, '_blank');
   } else {
-    // Im iframe laden
-    try {
-      pane.src = url;
-      // Falls iframe blockiert wird: fallback auf neuen Tab
-      setTimeout(() => {
-        const doc = pane.contentDocument || pane.contentWindow.document;
-        if (!doc || !doc.body || doc.body.innerHTML.trim() === '') {
-          window.open(url, '_blank');
-        }
-      }, 1500);
-    } catch (e) {
-      window.open(url, '_blank');
-    }
+    window.open(url, '_self');
   }
 }
 
@@ -230,19 +203,6 @@ q.addEventListener('keydown', e => {
 document.getElementById('settingsBtn').addEventListener('click', () => {
   settingsPanel.style.display = (settingsPanel.style.display === 'flex') ? 'none' : 'flex';
 });
-
-document.getElementById('back').addEventListener('click', () => {
-  try {
-    pane.contentWindow.history.back();
-  } catch(e) {}
-});
-document.getElementById('forward').addEventListener('click', () => {
-  try {
-    pane.contentWindow.history.forward();
-  } catch(e) {}
-});
 </script>
 </body>
 </html>
-
-
