@@ -6,60 +6,60 @@
   <title>HopperBrowser</title>
 
   <!-- PWA Manifest -->
-<link rel="manifest" href="manifest.json" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="DuckMini" />
-<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DuckMini" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 
-<style>
-  :root {
-    --bg: #121212;
-    --fg: #e0e0e0;
-    --accent: #1a73e8;
-    --border: #333;
-  }
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  }
-  header {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px; background: var(--bg); color: var(--fg);
-    border-bottom: 1px solid var(--border);
-    height: 56px; box-sizing: border-box;
-  }
-  button {
-    border: 0; background: transparent; padding: 6px;
-    border-radius: 6px; cursor: pointer; color: var(--fg);
-  }
-  input[type="search"], select {
-    padding: 6px 8px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-size: 14px;
-    background: #1e1e1e;
-    color: var(--fg);
-  }
-  .settings {
-    position: absolute; top: 56px; left: 0; right: 0;
-    background: #1e1e1e; border-bottom: 1px solid var(--border);
-    display: none; flex-wrap: wrap; gap: 8px; padding: 8px;
-    z-index: 1000; color: var(--fg);
-  }
-  label {
-    font-size: 12px; display: flex; flex-direction: column;
-    min-width: 120px;
-  }
-</style>
+  <style>
+    :root {
+      --bg: #121212;
+      --fg: #e0e0e0;
+      --accent: #1a73e8;
+      --border: #333;
+    }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px; background: var(--bg); color: var(--fg);
+      border-bottom: 1px solid var(--border);
+      height: 56px; box-sizing: border-box;
+    }
+    button {
+      border: 0; background: transparent; padding: 6px;
+      border-radius: 6px; cursor: pointer; color: var(--fg);
+    }
+    input[type="search"], select {
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      background: #1e1e1e;
+      color: var(--fg);
+    }
+    .settings {
+      position: absolute; top: 56px; left: 0; right: 0;
+      background: #1e1e1e; border-bottom: 1px solid var(--border);
+      display: none; flex-wrap: wrap; gap: 8px; padding: 8px;
+      z-index: 1000; color: var(--fg);
+    }
+    label {
+      font-size: 12px; display: flex; flex-direction: column;
+      min-width: 120px;
+    }
+  </style>
 </head>
 <body>
 <header>
   <button id="back" disabled>◀</button>
   <button id="forward" disabled>▶</button>
-  <input id="q" type="search" placeholder="DuckDuckGo durchsuchen…" />
+  <input id="q" type="search" placeholder="Ecosia durchsuchen…" />
   <button id="searchBtn">🔍</button>
   <button id="settingsBtn">⚙️</button>
 </header>
@@ -174,25 +174,30 @@ for (const key in fields) {
   });
 }
 
-function ddgUrl(query) {
+function ecosiaUrl(query) {
   const qenc = encodeURIComponent(query || '');
-  let url = `https://duckduckgo.com/?q=${qenc}&t=hm`;
-  if (prefs.lang) url += `&kl=${prefs.lang}`;
-  if (prefs.darkMode) url += `&k1=${prefs.darkMode}`;
-  if (prefs.safeSearch) url += `&kp=${prefs.safeSearch}`;
-  if (prefs.autoComplete) url += `&kaf=${prefs.autoComplete}`;
-  if (prefs.suggestions) url += `&kaj=${prefs.suggestions}`;
-  if (prefs.resultLang) url += `&kae=${prefs.resultLang}`;
-  if (prefs.layout) url += `&kaa=${prefs.layout}`;
-  if (prefs.newTab) url += `&kn=${prefs.newTab}`;
-  if (prefs.httpsOnly) url += `&kh=${prefs.httpsOnly}`;
+  let url = `https://www.ecosia.org/search?q=${qenc}`;
+  
+  // Optional: Falls du Ecosia-spezifische Parameter einbauen willst, hier erweitern
+  
   return url;
 }
 
 function doSearch(query) {
   if (!query) return;
-  const url = ddgUrl(query);
-  // Immer im neuen Tab oder Fenster öffnen (kein iframe wegen Blockierung)
+
+  // Darknet .onion URLs über Proxy öffnen (optional)
+  if (query.includes('.onion')) {
+    const onionUrl = `https://onion.to/${query}`;
+    if (prefs.newTab === '1') {
+      window.open(onionUrl, '_blank');
+    } else {
+      window.open(onionUrl, '_self');
+    }
+    return;
+  }
+
+  const url = ecosiaUrl(query);
   if (prefs.newTab === '1') {
     window.open(url, '_blank');
   } else {
@@ -214,3 +219,4 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
 </script>
 </body>
 </html>
+
