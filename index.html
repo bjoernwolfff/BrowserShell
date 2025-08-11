@@ -14,26 +14,42 @@
 
   <style>
     :root {
-      --bg: #121212;
-      --fg: #e0e0e0;
+      --bg-light: #ffffff;
+      --fg-light: #121212;
+      --bg-dark: #121212;
+      --fg-dark: #e0e0e0;
       --accent: #1a73e8;
       --border: #333;
     }
     html, body {
       margin: 0; padding: 0; height: 100%;
-      background: var(--bg);
-      color: var(--fg);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--bg-dark);
+      color: var(--fg-dark);
+    }
+    body.light {
+      background: var(--bg-light);
+      color: var(--fg-light);
     }
     header {
       display: flex; align-items: center; gap: 8px;
-      padding: 8px; background: var(--bg); color: var(--fg);
+      padding: 8px; background: inherit; color: inherit;
       border-bottom: 1px solid var(--border);
       height: 56px; box-sizing: border-box;
+      flex-shrink: 0;
     }
     button {
       border: 0; background: transparent; padding: 6px;
-      border-radius: 6px; cursor: pointer; color: var(--fg);
+      border-radius: 6px; cursor: pointer; color: inherit;
+      font-size: 18px;
+      user-select: none;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
     input[type="search"], select {
       padding: 6px 8px;
@@ -41,27 +57,45 @@
       border: 1px solid var(--border);
       font-size: 14px;
       background: #1e1e1e;
-      color: var(--fg);
+      color: var(--fg-dark);
+      flex-grow: 1;
+      outline-offset: 2px;
+    }
+    body.light input[type="search"], body.light select {
+      background: #f9f9f9;
+      color: var(--fg-light);
+      border-color: #aaa;
     }
     .settings {
       position: absolute; top: 56px; left: 0; right: 0;
       background: #1e1e1e; border-bottom: 1px solid var(--border);
       display: none; flex-wrap: wrap; gap: 8px; padding: 8px;
-      z-index: 1000; color: var(--fg);
+      z-index: 1000; color: var(--fg-dark);
+    }
+    body.light .settings {
+      background: #f9f9f9;
+      color: var(--fg-light);
+      border-color: #aaa;
     }
     label {
       font-size: 12px; display: flex; flex-direction: column;
       min-width: 120px;
     }
+    iframe {
+      flex-grow: 1;
+      width: 100%;
+      border: none;
+      background: white;
+    }
   </style>
 </head>
 <body>
 <header>
-  <button id="back" disabled>◀</button>
-  <button id="forward" disabled>▶</button>
-  <input id="q" type="search" placeholder="Ecosia durchsuchen…" />
-  <button id="searchBtn">🔍</button>
-  <button id="settingsBtn">⚙️</button>
+  <button id="back" disabled title="Zurück">◀</button>
+  <button id="forward" disabled title="Vorwärts">▶</button>
+  <input id="q" type="search" placeholder="Ecosia durchsuchen…" autocomplete="off" />
+  <button id="searchBtn" title="Suchen">🔍</button>
+  <button id="settingsBtn" title="Einstellungen">⚙️</button>
 </header>
 
 <div id="settingsPanel" class="settings">
@@ -79,7 +113,7 @@
   <label>Dark Mode
     <select id="darkMode">
       <option value="">Standard</option>
-      <option value="1" selected>An</option>
+      <option value="1">An</option>
       <option value="-1">Aus</option>
     </select>
   </label>
@@ -136,6 +170,8 @@
   </label>
 </div>
 
+<iframe id="searchFrame" src=""></iframe>
+
 <script>
 const prefs = {
   lang: '', darkMode: '1', safeSearch: '',
@@ -145,6 +181,9 @@ const prefs = {
 };
 const q = document.getElementById('q');
 const settingsPanel = document.getElementById('settingsPanel');
+const iframe = document.getElementById('searchFrame');
+const backBtn = document.getElementById('back');
+const forwardBtn = document.getElementById('forward');
 
 // Felder referenzieren
 const fields = {
@@ -168,43 +207,76 @@ try {
 // Setze Werte in die Felder und Listener
 for (const key in fields) {
   fields[key].value = prefs[key] || '';
-  fields[key].addEventListener('change', ()=>{
+  fields[key].addEventListener('change', () => {
     prefs[key] = fields[key].value;
     localStorage.setItem('duckmini_prefs', JSON.stringify(prefs));
+    applyDarkMode();
   });
 }
+
+// Dark Mode anwenden auf Body-Klasse
+function applyDarkMode() {
+  if(prefs.darkMode === '1') {
+    document.body.classList.remove('light');
+  } else if (prefs.darkMode === '-1') {
+    document.body.classList.add('light');
+  } else {
+    // Standard, hier Dark (wie original)
+    document.body.classList.remove('light');
+  }
+}
+applyDarkMode();
 
 function ecosiaUrl(query) {
   const qenc = encodeURIComponent(query || '');
   let url = `https://www.ecosia.org/search?q=${qenc}`;
-  
-  // Optional: Falls du Ecosia-spezifische Parameter einbauen willst, hier erweitern
-  
+
+  // Ecosia unterstützt keine params wie SafeSearch, Layout, Language per URL offiziell
+  // Hier könnte man weitere Parametrisierung ergänzen, falls benötigt
+
   return url;
 }
 
 function doSearch(query) {
   if (!query) return;
 
-  // Darknet .onion URLs über Proxy öffnen (optional)
-  if (query.includes('.onion')) {
-    const onionUrl = `https://onion.to/${query}`;
-    if (prefs.newTab === '1') {
-      window.open(onionUrl, '_blank');
-    } else {
-      window.open(onionUrl, '_self');
-    }
-    return;
-  }
-
-  const url = ecosiaUrl(query);
   if (prefs.newTab === '1') {
-    window.open(url, '_blank');
+    // Im neuen Tab öffnen
+    window.open(ecosiaUrl(query), '_blank');
   } else {
-    window.open(url, '_self');
+    // Im iframe laden
+    iframe.src = ecosiaUrl(query);
+  }
+  updateButtons();
+}
+
+// History Navigation im iframe (eingeschränkt durch Browser-Security)
+backBtn.addEventListener('click', () => {
+  try {
+    iframe.contentWindow.history.back();
+  } catch {}
+  updateButtons();
+});
+forwardBtn.addEventListener('click', () => {
+  try {
+    iframe.contentWindow.history.forward();
+  } catch {}
+  updateButtons();
+});
+
+// Update Buttons Zustand (aktiv / deaktiviert)
+function updateButtons() {
+  try {
+    backBtn.disabled = !(iframe.contentWindow.history.length > 1);
+    // Forward wird hier schwierig zu tracken, daher immer enabled
+    forwardBtn.disabled = false;
+  } catch {
+    backBtn.disabled = true;
+    forwardBtn.disabled = true;
   }
 }
 
+// Search-Button und Enter im Suchfeld
 document.getElementById('searchBtn').addEventListener('click', () => doSearch(q.value));
 q.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
@@ -213,10 +285,14 @@ q.addEventListener('keydown', e => {
   }
 });
 
+// Settings-Panel toggeln
 document.getElementById('settingsBtn').addEventListener('click', () => {
   settingsPanel.style.display = (settingsPanel.style.display === 'flex') ? 'none' : 'flex';
 });
+
+// Initial Buttons Zustand
+updateButtons();
+
 </script>
 </body>
 </html>
-
