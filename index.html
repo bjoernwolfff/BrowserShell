@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>DuckMini – Dark Mode</title>
+<title>DuckMini – Vollparameter & Dark Mode</title>
 <style>
   :root {
     --bg: #121212;
@@ -13,7 +13,8 @@
   }
   html, body {
     margin: 0; padding: 0; height: 100%;
-    background: var(--bg); color: var(--fg);
+    background: var(--bg);
+    color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     overflow: hidden;
   }
@@ -27,10 +28,13 @@
     border: 0; background: transparent; padding: 6px;
     border-radius: 6px; cursor: pointer; color: var(--fg);
   }
-  input[type="search"] {
-    flex: 1; padding: 6px 8px;
-    border-radius: 8px; border: 1px solid var(--border);
-    font-size: 14px; background: #1e1e1e; color: var(--fg);
+  input[type="search"], select {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    background: #1e1e1e;
+    color: var(--fg);
   }
   #frameWrap {
     position: fixed; top: 56px; bottom: 0; left: 0; right: 0;
@@ -46,11 +50,9 @@
     display: none; flex-wrap: wrap; gap: 8px; padding: 8px;
     z-index: 1000; color: var(--fg);
   }
-  label { font-size: 12px; display: flex; flex-direction: column; }
-  select {
-    font-size: 12px; padding: 4px;
-    border-radius: 4px; border: 1px solid var(--border);
-    background: #121212; color: var(--fg);
+  label {
+    font-size: 12px; display: flex; flex-direction: column;
+    min-width: 120px;
   }
 </style>
 </head>
@@ -69,6 +71,10 @@
       <option value="">Standard</option>
       <option value="de-de">Deutsch</option>
       <option value="en-us">Englisch (US)</option>
+      <option value="fr-fr">Französisch</option>
+      <option value="es-es">Spanisch</option>
+      <option value="it-it">Italienisch</option>
+      <option value="nl-nl">Niederländisch</option>
     </select>
   </label>
   <label>Dark Mode
@@ -85,6 +91,50 @@
       <option value="-1">Aus</option>
     </select>
   </label>
+  <label>Autovervollständigung
+    <select id="autoComplete">
+      <option value="">Standard</option>
+      <option value="1">An</option>
+      <option value="-1">Aus</option>
+    </select>
+  </label>
+  <label>Suchvorschläge
+    <select id="suggestions">
+      <option value="">Standard</option>
+      <option value="1">An</option>
+      <option value="-1">Aus</option>
+    </select>
+  </label>
+  <label>Ergebnissprache
+    <select id="resultLang">
+      <option value="">Standard</option>
+      <option value="de-de">Deutsch</option>
+      <option value="en-us">Englisch</option>
+      <option value="fr-fr">Französisch</option>
+    </select>
+  </label>
+  <label>Layout
+    <select id="layout">
+      <option value="">Standard</option>
+      <option value="d">Desktop</option>
+      <option value="h">High Contrast</option>
+      <option value="m">Mobile</option>
+    </select>
+  </label>
+  <label>Neuer Tab
+    <select id="newTab">
+      <option value="">Standard (iframe)</option>
+      <option value="1">Ja</option>
+      <option value="-1">Nein (iframe)</option>
+    </select>
+  </label>
+  <label>HTTPS only
+    <select id="httpsOnly">
+      <option value="">Standard</option>
+      <option value="1">Ja</option>
+      <option value="-1">Nein</option>
+    </select>
+  </label>
 </div>
 
 <div id="frameWrap">
@@ -92,7 +142,12 @@
 </div>
 
 <script>
-const prefs = { lang: '', darkMode: '1', safeSearch: '' };
+const prefs = {
+  lang: '', darkMode: '1', safeSearch: '',
+  autoComplete: '', suggestions: '',
+  resultLang: '', layout: '', newTab: '',
+  httpsOnly: ''
+};
 const q = document.getElementById('q');
 const pane = document.getElementById('pane');
 const settingsPanel = document.getElementById('settingsPanel');
@@ -101,15 +156,22 @@ const settingsPanel = document.getElementById('settingsPanel');
 const fields = {
   lang: document.getElementById('lang'),
   darkMode: document.getElementById('darkMode'),
-  safeSearch: document.getElementById('safeSearch')
+  safeSearch: document.getElementById('safeSearch'),
+  autoComplete: document.getElementById('autoComplete'),
+  suggestions: document.getElementById('suggestions'),
+  resultLang: document.getElementById('resultLang'),
+  layout: document.getElementById('layout'),
+  newTab: document.getElementById('newTab'),
+  httpsOnly: document.getElementById('httpsOnly')
 };
 
-// Laden gespeicherter Einstellungen
+// Lade gespeicherte Einstellungen
 try {
   const saved = JSON.parse(localStorage.getItem('duckmini_prefs')||'{}');
   Object.assign(prefs, saved);
-} catch(e){}
+} catch(e) {}
 
+// Setze Werte in die Felder und Listener
 for (const key in fields) {
   fields[key].value = prefs[key] || '';
   fields[key].addEventListener('change', ()=>{
@@ -124,6 +186,12 @@ function ddgUrl(query) {
   if (prefs.lang) url += `&kl=${prefs.lang}`;
   if (prefs.darkMode) url += `&k1=${prefs.darkMode}`;
   if (prefs.safeSearch) url += `&kp=${prefs.safeSearch}`;
+  if (prefs.autoComplete) url += `&kaf=${prefs.autoComplete}`;
+  if (prefs.suggestions) url += `&kaj=${prefs.suggestions}`;
+  if (prefs.resultLang) url += `&kae=${prefs.resultLang}`;
+  if (prefs.layout) url += `&kaa=${prefs.layout}`;
+  if (prefs.newTab) url += `&kn=${prefs.newTab}`;
+  if (prefs.httpsOnly) url += `&kh=${prefs.httpsOnly}`;
   return url;
 }
 
@@ -131,35 +199,50 @@ function doSearch(query) {
   if (!query) return;
   const url = ddgUrl(query);
 
-  // Test: iframe laden oder Tab öffnen
-  try {
-    pane.src = url;
-    setTimeout(() => {
-      if (pane.contentDocument && pane.contentDocument.body && pane.contentDocument.body.innerHTML.trim() === '') {
-        window.open(url, '_blank');
-      }
-    }, 1500);
-  } catch(e) {
+  if (prefs.newTab === '1') {
+    // Neuer Tab offen
     window.open(url, '_blank');
+  } else {
+    // Im iframe laden
+    try {
+      pane.src = url;
+      // Falls iframe blockiert wird: fallback auf neuen Tab
+      setTimeout(() => {
+        const doc = pane.contentDocument || pane.contentWindow.document;
+        if (!doc || !doc.body || doc.body.innerHTML.trim() === '') {
+          window.open(url, '_blank');
+        }
+      }, 1500);
+    } catch (e) {
+      window.open(url, '_blank');
+    }
   }
 }
 
-document.getElementById('searchBtn').addEventListener('click', ()=>doSearch(q.value));
-q.addEventListener('keydown', (e)=>{
-  if (e.key==='Enter'){ e.preventDefault(); doSearch(q.value); }
-});
-
-document.getElementById('settingsBtn').addEventListener('click', ()=>{
-  if (getComputedStyle(settingsPanel).display === 'none') {
-    settingsPanel.style.display = 'flex';
-  } else {
-    settingsPanel.style.display = 'none';
+document.getElementById('searchBtn').addEventListener('click', () => doSearch(q.value));
+q.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    doSearch(q.value);
   }
 });
 
-document.getElementById('back').addEventListener('click', ()=>pane.contentWindow.history.back());
-document.getElementById('forward').addEventListener('click', ()=>pane.contentWindow.history.forward());
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  settingsPanel.style.display = (settingsPanel.style.display === 'flex') ? 'none' : 'flex';
+});
+
+document.getElementById('back').addEventListener('click', () => {
+  try {
+    pane.contentWindow.history.back();
+  } catch(e) {}
+});
+document.getElementById('forward').addEventListener('click', () => {
+  try {
+    pane.contentWindow.history.forward();
+  } catch(e) {}
+});
 </script>
 </body>
 </html>
+
 
