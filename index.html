@@ -4,116 +4,51 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>DuckMini – Vollparameter</title>
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- iOS PWA Meta Tags -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="DuckMini" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-
-  <style>
-    :root {
-      --bg: #f7f7f8;
-      --accent: #1a73e8;
-    }
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: calc(var(--vh, 1vh) * 100);
-      background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      overflow: hidden;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px;
-      background: var(--bg);
-      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-      height: 56px;
-      box-sizing: border-box;
-    }
-    button {
-      border: 0;
-      background: transparent;
-      padding: 6px;
-      border-radius: 6px;
-    }
-    .btn {
-      cursor: pointer;
-    }
-    input[type="search"], select, input[type="number"] {
-      padding: 6px 8px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      font-size: 14px;
-    }
-    .controls {
-      display: flex;
-      gap: 6px;
-      width: 100%;
-      align-items: center;
-    }
-    #frameWrap {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      top: 56px;
-      background: white;
-      height: calc(var(--vh, 1vh) * 100 - 56px);
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      background: white;
-    }
-    .settings {
-      padding: 10px;
-      background: #fff;
-      border-top: 1px solid #eee;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-    label {
-      font-size: 13px;
-      display: flex;
-      flex-direction: column;
-    }
-    small.gray, span.gray {
-      color: #666;
-      font-size: 12px;
-    }
-  </style>
-  <style>
-  :root { --bg: #f7f7f8; }
+<link rel="manifest" href="manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="DuckMini" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<style>
+  :root { --bg: #f7f7f8; --accent: #1a73e8; }
   html, body {
     margin: 0; padding: 0; height: 100%;
-    font-family: sans-serif; background: var(--bg);
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    overflow: hidden;
   }
   header {
-    display: flex; gap: 8px; align-items: center;
+    display: flex; align-items: center; gap: 8px;
     padding: 8px; background: var(--bg);
-    height: 56px; box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+    height: 56px; box-sizing: border-box;
   }
-  input[type="search"] { flex: 1; padding: 6px; border-radius: 8px; border: 1px solid #ccc; }
-  #frameWrap { position: fixed; top: 56px; bottom: 0; left: 0; right: 0; }
-  iframe { width: 100%; height: 100%; border: 0; }
+  button {
+    border: 0; background: transparent; padding: 6px;
+    border-radius: 6px; cursor: pointer;
+  }
+  input[type="search"] {
+    flex: 1; padding: 6px 8px;
+    border-radius: 8px; border: 1px solid #ddd;
+    font-size: 14px;
+  }
+  #frameWrap {
+    position: fixed; top: 56px; bottom: 0; left: 0; right: 0;
+    background: white;
+  }
+  iframe {
+    width: 100%; height: 100%; border: 0;
+  }
   .settings {
     position: absolute; top: 56px; left: 0; right: 0;
     background: #fff; border-bottom: 1px solid #ccc;
-    display: none; flex-wrap: wrap; gap: 6px; padding: 8px;
+    display: none; flex-wrap: wrap; gap: 8px; padding: 8px;
     z-index: 1000;
   }
   label { font-size: 12px; display: flex; flex-direction: column; }
-  select, input[type="number"], input[type="checkbox"] {
-    font-size: 12px; padding: 4px; border-radius: 4px; border: 1px solid #ccc;
+  select {
+    font-size: 12px; padding: 4px;
+    border-radius: 4px; border: 1px solid #ccc;
   }
 </style>
 </head>
@@ -211,53 +146,38 @@ const prefs = {
   httpsOnly: ''
 };
 
+// Elemente referenzieren
 const q = document.getElementById('q');
 const pane = document.getElementById('pane');
-const settingsBtn = document.getElementById('settingsBtn');
 const settingsPanel = document.getElementById('settingsPanel');
 
-// Felder
-const langEl = document.getElementById('lang');
-const darkModeEl = document.getElementById('darkMode');
-const safeSearchEl = document.getElementById('safeSearch');
-const autoCompleteEl = document.getElementById('autoComplete');
-const suggestionsEl = document.getElementById('suggestions');
-const resultLangEl = document.getElementById('resultLang');
-const layoutEl = document.getElementById('layout');
-const newTabEl = document.getElementById('newTab');
-const httpsOnlyEl = document.getElementById('httpsOnly');
+// Settings-Elemente
+const fields = {
+  lang: document.getElementById('lang'),
+  darkMode: document.getElementById('darkMode'),
+  safeSearch: document.getElementById('safeSearch'),
+  autoComplete: document.getElementById('autoComplete'),
+  suggestions: document.getElementById('suggestions'),
+  resultLang: document.getElementById('resultLang'),
+  layout: document.getElementById('layout'),
+  newTab: document.getElementById('newTab'),
+  httpsOnly: document.getElementById('httpsOnly')
+};
 
-// Laden
+// Gespeicherte Einstellungen laden
 try {
   const saved = JSON.parse(localStorage.getItem('duckmini_prefs')||'{}');
   Object.assign(prefs, saved);
 } catch(e){}
 
-langEl.value = prefs.lang;
-darkModeEl.value = prefs.darkMode;
-safeSearchEl.value = prefs.safeSearch;
-autoCompleteEl.value = prefs.autoComplete;
-suggestionsEl.value = prefs.suggestions;
-resultLangEl.value = prefs.resultLang;
-layoutEl.value = prefs.layout;
-newTabEl.value = prefs.newTab;
-httpsOnlyEl.value = prefs.httpsOnly;
-
-[langEl,darkModeEl,safeSearchEl,autoCompleteEl,suggestionsEl,
- resultLangEl,layoutEl,newTabEl,httpsOnlyEl].forEach(el=>{
-  el.addEventListener('change',()=>{
-    prefs.lang = langEl.value;
-    prefs.darkMode = darkModeEl.value;
-    prefs.safeSearch = safeSearchEl.value;
-    prefs.autoComplete = autoCompleteEl.value;
-    prefs.suggestions = suggestionsEl.value;
-    prefs.resultLang = resultLangEl.value;
-    prefs.layout = layoutEl.value;
-    prefs.newTab = newTabEl.value;
-    prefs.httpsOnly = httpsOnlyEl.value;
+// Felder setzen
+for (const key in fields) {
+  fields[key].value = prefs[key] || '';
+  fields[key].addEventListener('change', ()=>{
+    prefs[key] = fields[key].value;
     localStorage.setItem('duckmini_prefs', JSON.stringify(prefs));
   });
-});
+}
 
 function ddgUrl(query) {
   const qenc = encodeURIComponent(query || '');
@@ -279,15 +199,25 @@ function doSearch(query) {
   pane.src = ddgUrl(query);
 }
 
+// Suche starten
 document.getElementById('searchBtn').addEventListener('click', ()=>doSearch(q.value));
-q.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); doSearch(q.value); } });
-
-settingsBtn.addEventListener('click', ()=>{
-  settingsPanel.style.display = settingsPanel.style.display==='none' ? 'flex' : 'none';
+q.addEventListener('keydown', (e)=>{
+  if (e.key==='Enter'){ e.preventDefault(); doSearch(q.value); }
 });
 
+// Settings-Panel toggle (funktioniert auch bei CSS-Display:none)
+document.getElementById('settingsBtn').addEventListener('click', ()=>{
+  if (getComputedStyle(settingsPanel).display === 'none') {
+    settingsPanel.style.display = 'flex';
+  } else {
+    settingsPanel.style.display = 'none';
+  }
+});
+
+// Navigation
 document.getElementById('back').addEventListener('click', ()=>pane.contentWindow.history.back());
 document.getElementById('forward').addEventListener('click', ()=>pane.contentWindow.history.forward());
 </script>
 </body>
 </html>
+
